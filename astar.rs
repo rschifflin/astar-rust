@@ -12,10 +12,11 @@ enum Symbol {
   Route
 }
 
-struct Node {
+struct Node<'a> {
   x: u64,
   y: u64,
   cost: u64,
+  parent: Option<&'a Node<'a>>
 }
 
 fn grid_from_input() -> ~[~[Symbol]] {
@@ -74,8 +75,7 @@ fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
   let (start_x, start_y):   (u64, u64) = grid.find(Start);
   let (finish_x, finish_y): (u64, u64) = grid.find(Finish);
   let heuristic = score((start_x, start_y), (finish_x, finish_y));
-  let node = Node { x: start_x, y: start_y, cost: heuristic };
-  
+  let node = Node { x: start_x, y: start_y, cost: heuristic, parent: None };
   solved_grid
 }
 
