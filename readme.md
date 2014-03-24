@@ -1,8 +1,7 @@
 A simple A* implementation written in Rust.
 This program takes a pathfile as input. It expects all pathfiles to conform to the following restriction:
 
-The first line of the path file is of the form `<number>x<number>`, denoting the width x height of the rest of the file.
-This line is followed by `height` subsequent lines. Each line must contain `width` characters from the following character set:
+Pathfiles consist of `height` lines each of `width` characters. Each line must contain characters from the following character set:
 - s
 - f
 - .
@@ -19,7 +18,6 @@ Ex:
 
 input pathfile:
 
-    4x4 
     s... 
     xx.x 
     g... 
@@ -27,7 +25,6 @@ input pathfile:
 
 output pathfile:
 
-    4x4 
     s**. 
     xx*x 
     g**. 
