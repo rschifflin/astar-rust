@@ -80,18 +80,16 @@ fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
 }
 
 fn score((x1, y1): (u64, u64), (x2, y2): (u64, u64)) -> u64 {
-  let x1f = x1 as f64;
-  let x2f = x2 as f64;
-  let y1f = y1 as f64;
-  let y2f = y2 as f64;
-  (num::sqrt(num::pow(x1f - x2f, 2.0) + num::pow(y1f - y2f, 2.0)) as u64) + 1
+  let delta_x = x1 as f64 - x2 as f64;
+  let delta_y = y1 as f64 - y2 as f64;
+  let euclidean_distance = (num::sqrt(num::pow(delta_x, 2.0) + num::pow(delta_y, 2.0)) as u64);
+  euclidean_distance + 1
 }
 
 fn main() {
   let grid: ~[~[Symbol]] = grid_from_input();
   let solved_grid: ~[~[Symbol]] = solve(grid);
 }
-
 
 //TESTS
 #[test]
