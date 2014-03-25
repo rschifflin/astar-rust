@@ -1,7 +1,9 @@
+extern mod extra;
 use std::os;
 use std::io::buffered::BufferedReader;
 use std::io::File;
 use std::num;
+use extra::priority_queue;
 
 #[deriving(Eq, Clone)]
 enum Symbol {
@@ -16,7 +18,19 @@ struct Node<'a> {
   x: u64,
   y: u64,
   cost: u64,
-  parent: Option<&'a Node<'a>>
+  parent: Option<&'a ~Node<'a>>
+}
+
+impl<'a> Eq for Node<'a> {
+  fn eq(&self, other: &Node) -> bool {
+    self.x == other.x && self.y == other.y
+  }
+}
+
+impl<'a> Ord for Node<'a> {
+  fn lt(&self, other: &Node) -> bool {
+    self.cost < other.cost
+  }
 }
 
 fn grid_from_input() -> ~[~[Symbol]] {
@@ -72,10 +86,51 @@ impl SymbolIndexable for ~[~[Symbol]] {
 
 fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
   let mut solved_grid = grid.clone();
+  let mut open_nodes = priority_queue::PriorityQueue::new();
+  let mut closed_nodes = ~[];
   let (start_x, start_y):   (u64, u64) = grid.find(Start);
   let (finish_x, finish_y): (u64, u64) = grid.find(Finish);
+
   let heuristic = score((start_x, start_y), (finish_x, finish_y));
-  let node = Node { x: start_x, y: start_y, cost: heuristic, parent: None };
+  let node = ~Node{ x: start_x, y: start_y, cost: heuristic, parent: None };
+  open_nodes.push(node);
+
+  while(open_nodes.maybe_top() != None) {
+    let current_node = open_nodes.top();
+    closed_nodes.push(open_nodes.pop());
+
+    if (current_node.x == finish_x && current_node.y == finish_y) {
+      println("Victory!");
+      break;
+    }
+    else {
+      if current_node.x > 0 && point_in_bounds(current_node.x - 1, current_node.y, &grid) {
+        let new_x = start_x - 1;
+        let new_y = start_y;
+        let heuristic = score((new_x, new_y), (finish_x, finish_y));
+        open_nodes.push(~Node{ x: new_x, y: new_y, cost: heuristic + current_node.cost, parent: Some(current_node) }); 
+
+      }
+      if point_in_bounds(current_node.x + 1, current_node.y, &grid) {
+        let new_x = start_x + 1;
+        let new_y = start_y;
+        let heuristic = score((new_x, new_y), (finish_x, finish_y));
+        open_nodes.push(~Node{ x: new_x, y: new_y, cost: heuristic + current_node.cost, parent: Some(current_node) }); 
+      }
+      if current_node.y > 0 && point_in_bounds(current_node.x, current_node.y - 1, &grid) {
+        let new_x = start_x;
+        let new_y = start_y - 1;
+        let heuristic = score((new_x, new_y), (finish_x, finish_y));
+        open_nodes.push(~Node{ x: new_x, y: new_y, cost: heuristic + current_node.cost, parent: Some(current_node) }); 
+      }
+      if point_in_bounds(current_node.x, current_node.y + 1, &grid) {
+        let new_x = start_x;
+        let new_y = start_y + 1;
+        let heuristic = score((new_x, new_y), (finish_x, finish_y));
+        open_nodes.push(~Node{ x: new_x, y: new_y, cost: heuristic + current_node.cost, parent: Some(current_node) }); 
+      }
+    }
+  }
   solved_grid
 }
 
@@ -84,6 +139,14 @@ fn score((x1, y1): (u64, u64), (x2, y2): (u64, u64)) -> u64 {
   let delta_y = y1 as f64 - y2 as f64;
   let euclidean_distance = (num::sqrt(num::pow(delta_x, 2.0) + num::pow(delta_y, 2.0)) as u64);
   euclidean_distance + 1
+}
+
+fn point_in_bounds(x: u64, y: u64, grid: &~[~[Symbol]]) -> bool {
+  if y >= grid.len() as u64 && x >= grid[0].len() as u64 {
+    return false;
+  }
+
+  grid.at(x,y) != Closed
 }
 
 fn main() {
