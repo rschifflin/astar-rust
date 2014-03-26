@@ -3,6 +3,8 @@ use std::os;
 use std::io::buffered::BufferedReader;
 use std::io::File;
 use std::num;
+use std::cast;
+use std::hashmap::HashSet;
 use extra::priority_queue;
 
 #[deriving(Eq, Clone)]
@@ -17,8 +19,9 @@ enum Symbol {
 struct Node<'a> {
   x: u64,
   y: u64,
+  depth: u64,
   cost: u64,
-  parent: Option<&'a ~Node<'a>>
+  parent: Option<&'a Node<'a>>
 }
 
 impl<'a> Eq for Node<'a> {
@@ -29,9 +32,26 @@ impl<'a> Eq for Node<'a> {
 
 impl<'a> Ord for Node<'a> {
   fn lt(&self, other: &Node) -> bool {
-    self.cost < other.cost
+    other.cost < self.cost
   }
 }
+
+struct UnsafeNodeList<'a> {
+  nodes: ~[~Node<'a>]
+}
+
+impl<'b> UnsafeNodeList<'b> {
+  fn push(&self, node: ~Node<'b>) {
+    unsafe { 
+      cast::transmute_mut(self).nodes.push(node);
+    }
+  }
+
+  fn last<'a>(&'b self) -> &'b Node<'b> {
+    &*self.nodes[self.nodes.len() - 1]
+  }
+}
+
 
 fn grid_from_input() -> ~[~[Symbol]] {
   let args = os::args();
@@ -87,50 +107,78 @@ impl SymbolIndexable for ~[~[Symbol]] {
 fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
   let mut solved_grid = grid.clone();
   let mut open_nodes = priority_queue::PriorityQueue::new();
-  let mut closed_nodes = ~[];
+  let mut working_set = HashSet::new();
+  let closed_nodes = UnsafeNodeList { nodes: ~[] };
   let (start_x, start_y):   (u64, u64) = grid.find(Start);
   let (finish_x, finish_y): (u64, u64) = grid.find(Finish);
 
   let heuristic = score((start_x, start_y), (finish_x, finish_y));
-  let node = ~Node{ x: start_x, y: start_y, cost: heuristic, parent: None };
+  let node = ~Node{ x: start_x, y: start_y, depth: 0, cost: heuristic, parent: None };
   open_nodes.push(node);
+  working_set.insert((start_x, start_y));
 
-  while(open_nodes.maybe_top() != None) {
-    let current_node = open_nodes.top();
+  while open_nodes.maybe_top() != None {
     closed_nodes.push(open_nodes.pop());
-
+    let current_node = closed_nodes.last();
     if (current_node.x == finish_x && current_node.y == finish_y) {
       println("Victory!");
+      let mut path = ~[];
+      let mut parent = current_node.parent;
+      path.push((current_node.x, current_node.y));
+
+      while parent != None {
+        parent = match parent {
+          Some(new_parent) => {
+            path.push((new_parent.x, new_parent.y));
+            new_parent.parent  
+          }
+          None => None
+        }
+      }
+
+      for i in path.iter() {
+        println!("{:?}", i);
+      }
+
       break;
     }
-    else {
-      if current_node.x > 0 && point_in_bounds(current_node.x - 1, current_node.y, &grid) {
-        let new_x = start_x - 1;
-        let new_y = start_y;
-        let heuristic = score((new_x, new_y), (finish_x, finish_y));
-        open_nodes.push(~Node{ x: new_x, y: new_y, cost: heuristic + current_node.cost, parent: Some(current_node) }); 
 
-      }
-      if point_in_bounds(current_node.x + 1, current_node.y, &grid) {
-        let new_x = start_x + 1;
-        let new_y = start_y;
+    else {
+      if point_in_bounds(current_node.x - 1, current_node.y, &grid) && !working_set.contains(&(current_node.x - 1, current_node.y)) {
+        let new_x = current_node.x - 1;
+        let new_y = current_node.y;
         let heuristic = score((new_x, new_y), (finish_x, finish_y));
-        open_nodes.push(~Node{ x: new_x, y: new_y, cost: heuristic + current_node.cost, parent: Some(current_node) }); 
+        let depth = current_node.depth + 1;
+        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) }); 
+        working_set.insert((new_x, new_y));
       }
-      if current_node.y > 0 && point_in_bounds(current_node.x, current_node.y - 1, &grid) {
-        let new_x = start_x;
-        let new_y = start_y - 1;
+      if point_in_bounds(current_node.x + 1, current_node.y, &grid) && !working_set.contains(&(current_node.x + 1, current_node.y)) {
+        let new_x = current_node.x + 1;
+        let new_y = current_node.y;
         let heuristic = score((new_x, new_y), (finish_x, finish_y));
-        open_nodes.push(~Node{ x: new_x, y: new_y, cost: heuristic + current_node.cost, parent: Some(current_node) }); 
+        let depth = current_node.depth + 1;
+        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) }); 
+        working_set.insert((new_x, new_y));
       }
-      if point_in_bounds(current_node.x, current_node.y + 1, &grid) {
-        let new_x = start_x;
-        let new_y = start_y + 1;
+      if point_in_bounds(current_node.x, current_node.y - 1, &grid) && !working_set.contains(&(current_node.x, current_node.y - 1)) {
+        let new_x = current_node.x;
+        let new_y = current_node.y - 1;
         let heuristic = score((new_x, new_y), (finish_x, finish_y));
-        open_nodes.push(~Node{ x: new_x, y: new_y, cost: heuristic + current_node.cost, parent: Some(current_node) }); 
+        let depth = current_node.depth + 1;
+        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) }); 
+        working_set.insert((new_x, new_y));
+      }
+      if point_in_bounds(current_node.x, current_node.y + 1, &grid) && !working_set.contains(&(current_node.x, current_node.y + 1)) {
+        let new_x = current_node.x;
+        let new_y = current_node.y + 1;
+        let heuristic = score((new_x, new_y), (finish_x, finish_y));
+        let depth = current_node.depth + 1;
+        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) }); 
+        working_set.insert((new_x, new_y));
       }
     }
   }
+
   solved_grid
 }
 
@@ -142,7 +190,7 @@ fn score((x1, y1): (u64, u64), (x2, y2): (u64, u64)) -> u64 {
 }
 
 fn point_in_bounds(x: u64, y: u64, grid: &~[~[Symbol]]) -> bool {
-  if y >= grid.len() as u64 && x >= grid[0].len() as u64 {
+  if y >= grid.len() as u64 || x >= grid[0].len() as u64 {
     return false;
   }
 
