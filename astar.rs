@@ -1,110 +1,20 @@
 extern mod extra;
-use std::os;
-use std::io::buffered::BufferedReader;
-use std::io::File;
+
 use std::num;
-use std::cast;
 use std::hashmap::HashSet;
 use extra::priority_queue;
 
-#[deriving(Eq, Clone)]
-enum Symbol {
-  Start,
-  Finish,
-  Open,
-  Closed,
-  Route
-}
+use node::Node;
+use node::UnsafeNodeList;
 
-struct Node<'a> {
-  x: u64,
-  y: u64,
-  depth: u64,
-  cost: u64,
-  parent: Option<&'a Node<'a>>
-}
+use grid::Grid;
+use grid::grid_from_input;
+use grid::Symbol;
 
-impl<'a> Eq for Node<'a> {
-  fn eq(&self, other: &Node) -> bool {
-    self.x == other.x && self.y == other.y
-  }
-}
+mod node;
+mod grid;
 
-impl<'a> Ord for Node<'a> {
-  fn lt(&self, other: &Node) -> bool {
-    other.cost < self.cost
-  }
-}
-
-struct UnsafeNodeList<'a> {
-  nodes: ~[~Node<'a>]
-}
-
-impl<'b> UnsafeNodeList<'b> {
-  fn push(&self, node: ~Node<'b>) {
-    unsafe { 
-      cast::transmute_mut(self).nodes.push(node);
-    }
-  }
-
-  fn last<'a>(&'b self) -> &'b Node<'b> {
-    &*self.nodes[self.nodes.len() - 1]
-  }
-}
-
-
-fn grid_from_input() -> ~[~[Symbol]] {
-  let args = os::args();
-  let path = Path::new(args[1]);
-  let mut file = BufferedReader::new(File::open(&path));
-  let mut grid: ~[~[Symbol]] = ~[];
-  for line in file.lines() {
-    grid.push(symbolize_line(line));
-  }
-  grid
-}
-
-fn symbolize_line(line: ~str) -> ~[Symbol] {
-  let mut symbolized_line: ~[Symbol] = ~[];
-  for each_char in line.chars() {
-    match each_char {
-      's' => symbolized_line.push(Start),
-      'f' => symbolized_line.push(Finish),
-      'x' => symbolized_line.push(Closed),
-      _ => symbolized_line.push(Open)
-    }
-  }
-  symbolized_line
-}
-
-trait SymbolIndexable {
-  fn at(&self, x:u64, y:u64) -> Symbol;
-  fn set(&mut self, x:u64, y:u64, value:Symbol);
-  fn find(&self, target:Symbol) -> (u64, u64);
-}
-
-impl SymbolIndexable for ~[~[Symbol]] {
-  fn at(&self, x:u64, y:u64) -> Symbol {
-    self[y][x]
-  }
-
-  fn set(&mut self, x:u64, y:u64, value:Symbol) {
-    self[y][x] = value;
-  }
-  
-  fn find(&self, target: Symbol) -> (u64, u64) {
-    for y in range(0, self.len()) {
-      for x in range(0, self[y].len()) {
-        if self[y][x] == target {
-          return (x as u64, y as u64);
-        }
-      }
-    }
-    (0u64, 0u64) 
-  }
-}
-
-fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
+fn solve(grid: Grid) -> Grid {
   let mut solved_grid = grid.clone();
   let mut open_nodes = priority_queue::PriorityQueue::new();
   let mut working_set = HashSet::new();
@@ -130,7 +40,7 @@ fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
         parent = match parent {
           Some(new_parent) => {
             path.push((new_parent.x, new_parent.y));
-            new_parent.parent  
+            new_parent.parent
           }
           None => None
         }
@@ -149,7 +59,7 @@ fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
         let new_y = current_node.y;
         let heuristic = score((new_x, new_y), (finish_x, finish_y));
         let depth = current_node.depth + 1;
-        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) }); 
+        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) });
         working_set.insert((new_x, new_y));
       }
       if point_in_bounds(current_node.x + 1, current_node.y, &grid) && !working_set.contains(&(current_node.x + 1, current_node.y)) {
@@ -157,7 +67,7 @@ fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
         let new_y = current_node.y;
         let heuristic = score((new_x, new_y), (finish_x, finish_y));
         let depth = current_node.depth + 1;
-        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) }); 
+        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) });
         working_set.insert((new_x, new_y));
       }
       if point_in_bounds(current_node.x, current_node.y - 1, &grid) && !working_set.contains(&(current_node.x, current_node.y - 1)) {
@@ -165,7 +75,7 @@ fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
         let new_y = current_node.y - 1;
         let heuristic = score((new_x, new_y), (finish_x, finish_y));
         let depth = current_node.depth + 1;
-        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) }); 
+        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) });
         working_set.insert((new_x, new_y));
       }
       if point_in_bounds(current_node.x, current_node.y + 1, &grid) && !working_set.contains(&(current_node.x, current_node.y + 1)) {
@@ -173,7 +83,7 @@ fn solve(grid: ~[~[Symbol]]) -> ~[~[Symbol]] {
         let new_y = current_node.y + 1;
         let heuristic = score((new_x, new_y), (finish_x, finish_y));
         let depth = current_node.depth + 1;
-        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) }); 
+        open_nodes.push(~Node{ x: new_x, y: new_y, depth: depth, cost: heuristic + depth, parent: Some(current_node) });
         working_set.insert((new_x, new_y));
       }
     }
@@ -189,7 +99,7 @@ fn score((x1, y1): (u64, u64), (x2, y2): (u64, u64)) -> u64 {
   euclidean_distance + 1
 }
 
-fn point_in_bounds(x: u64, y: u64, grid: &~[~[Symbol]]) -> bool {
+fn point_in_bounds(x: u64, y: u64, grid: &Grid) -> bool {
   if y >= grid.len() as u64 || x >= grid[0].len() as u64 {
     return false;
   }
@@ -198,36 +108,8 @@ fn point_in_bounds(x: u64, y: u64, grid: &~[~[Symbol]]) -> bool {
 }
 
 fn main() {
-  let grid: ~[~[Symbol]] = grid_from_input();
-  let solved_grid: ~[~[Symbol]] = solve(grid);
-}
-
-//TESTS
-#[test]
-fn test_symbolize_line_one() {
-  assert_eq!(symbolize_line(~"..x.s"), ~[Open, Open, Closed, Open, Start]);
-}
-
-#[test]
-fn test_symbolize_line_two() {
-  assert!(symbolize_line(~".sx.sf..xx.x") == ~[Open, Start, Closed, Open, Start, Finish, Open, Open, Closed, Closed, Open, Closed]);
-}
-
-#[test]
-fn test_symbolize_line_three() {
-  assert!(symbolize_line(~".sx.sf..xx.x") != ~[Start, Open, Closed, Open, Start, Finish, Open, Open, Closed, Closed, Open, Closed]);
-}
-
-#[test]
-fn test_find_start() {
-  let grid: ~[~[Symbol]] = ~[ ~[ Closed, Open ], ~[ Finish, Open ], ~[Closed, Start] ];
-  assert!(grid.find(Start) == (1,2) );
-}
-
-#[test]
-fn test_find_finish() {
-  let grid: ~[~[Symbol]] = ~[ ~[ Closed, Open ], ~[ Finish, Open ], ~[Closed, Start] ];
-  assert!(grid.find(Finish) == (0,1) );
+  let grid: Grid = grid_from_input();
+  let solved_grid: Grid = solve(grid);
 }
 
 #[test]
