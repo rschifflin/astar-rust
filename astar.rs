@@ -7,9 +7,10 @@ use extra::priority_queue;
 use node::Node;
 use node::UnsafeNodeList;
 
+use grid::{Start, Finish, Closed, Route};
 use grid::Grid;
-use grid::grid_from_input;
-use grid::Symbol;
+use grid::{import_grid, export_grid};
+use grid::SymbolIndexable;
 
 mod node;
 mod grid;
@@ -30,26 +31,19 @@ fn solve(grid: Grid) -> Grid {
   while open_nodes.maybe_top() != None {
     closed_nodes.push(open_nodes.pop());
     let current_node = closed_nodes.last();
-    if (current_node.x == finish_x && current_node.y == finish_y) {
-      println("Victory!");
-      let mut path = ~[];
-      let mut parent = current_node.parent;
-      path.push((current_node.x, current_node.y));
 
+    if (current_node.x == finish_x && current_node.y == finish_y) {
+      let mut parent = current_node.parent;
       while parent != None {
         parent = match parent {
           Some(new_parent) => {
-            path.push((new_parent.x, new_parent.y));
+            solved_grid.set(new_parent.x, new_parent.y, Route);
             new_parent.parent
           }
           None => None
         }
       }
-
-      for i in path.iter() {
-        println!("{:?}", i);
-      }
-
+      solved_grid.set(start_x, start_y, Start);
       break;
     }
 
@@ -108,8 +102,9 @@ fn point_in_bounds(x: u64, y: u64, grid: &Grid) -> bool {
 }
 
 fn main() {
-  let grid: Grid = grid_from_input();
+  let grid: Grid = import_grid();
   let solved_grid: Grid = solve(grid);
+  export_grid(&solved_grid);
 }
 
 #[test]
@@ -130,7 +125,7 @@ fn test_score_5x9_13x23() {
 #[test]
 #[ignore]
 fn with_an_open_grid_of_size_2x2__where_the_topleft_is_start__where_the_bottomright_is_finish__it_makes_a_route_through_the_topright() {
-  let grid: ~[~[Symbol]] = ~[ ~[ Start, Open ], ~[ Open, Finish ] ];
-  let goal: ~[~[Symbol]] = ~[ ~[ Start, Route], ~[ Open, Finish ] ];
+  let grid: Grid = ~[ ~[ Start, Open ], ~[ Open, Finish ] ];
+  let goal: Grid = ~[ ~[ Start, Route], ~[ Open, Finish ] ];
   assert_eq!(solve(grid), goal);
 }

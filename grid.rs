@@ -3,17 +3,16 @@ use std::io::buffered::BufferedReader;
 use std::io::File;
 
 #[deriving(Eq, Clone)]
-enum Symbol {
+pub enum Symbol {
   Start,
   Finish,
   Open,
   Closed,
   Route
 }
+pub type Grid = ~[~[Symbol]];
 
-type Grid = ~[~[Symbol]];
-
-pub fn grid_from_input() -> Grid {
+pub fn import_grid() -> Grid {
   let args = os::args();
   let path = Path::new(args[1]);
   let mut file = BufferedReader::new(File::open(&path));
@@ -22,6 +21,29 @@ pub fn grid_from_input() -> Grid {
     grid.push(symbolize_line(line));
   }
   grid
+}
+
+pub fn export_grid(grid: &Grid) {
+  let mut file = File::create(&Path::new("solved_path.txt"));
+
+  for line in grid.iter() {
+    file.write_str(stringify_line(line));
+  }
+}
+
+fn stringify_line(line: &~[Symbol]) -> ~str {
+  let mut stringified_line: ~str = ~"";
+  for each_sym in line.iter() {
+    match *each_sym {
+      Open => stringified_line.push_char('.'),
+      Closed => stringified_line.push_char('x'),
+      Start => stringified_line.push_char('s'),
+      Finish => stringified_line.push_char('f'),
+      Route => stringified_line.push_char('@')
+    }
+  }
+  stringified_line.push_char('\n');
+  stringified_line
 }
 
 fn symbolize_line(line: ~str) -> ~[Symbol] {
@@ -37,7 +59,7 @@ fn symbolize_line(line: ~str) -> ~[Symbol] {
   symbolized_line
 }
 
-trait SymbolIndexable {
+pub trait SymbolIndexable {
   fn at(&self, x:u64, y:u64) -> Symbol;
   fn set(&mut self, x:u64, y:u64, value:Symbol);
   fn find(&self, target:Symbol) -> (u64, u64);
@@ -90,5 +112,4 @@ fn test_find_finish() {
   let grid: ~[~[Symbol]] = ~[ ~[ Closed, Open ], ~[ Finish, Open ], ~[Closed, Start] ];
   assert!(grid.find(Finish) == (0,1) );
 }
-
 
