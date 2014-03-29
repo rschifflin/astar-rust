@@ -36,7 +36,7 @@ fn stringify_line(line: &~[Symbol]) -> ~str {
   for each_sym in line.iter() {
     match *each_sym {
       Open => stringified_line.push_char('.'),
-      Closed => stringified_line.push_char('x'),
+      Closed => stringified_line.push_char('|'),
       Start => stringified_line.push_char('s'),
       Finish => stringified_line.push_char('f'),
       Route => stringified_line.push_char('@')
@@ -52,7 +52,7 @@ fn symbolize_line(line: ~str) -> ~[Symbol] {
     match each_char {
       's' => symbolized_line.push(Start),
       'f' => symbolized_line.push(Finish),
-      'x' => symbolized_line.push(Closed),
+      '|' => symbolized_line.push(Closed),
       _ => symbolized_line.push(Open)
     }
   }

@@ -5,27 +5,27 @@ Pathfiles consist of `height` lines each of `width` characters. Each line must c
 - s
 - f
 - .
-- x
+- |
 
 Only one `s` character is allowed within the pathfile. It represents the start position of the path.
 Only one `f` character is allowed within the pathfile. It represents the finish position of the path.
 All `.` characters represent empty space, which can be pathed through.
-All `x` characters represent occupied space, which cannot be pathed through.
+All `|` characters represent occupied space, which cannot be pathed through.
 
-This program will output the a solved pathfile, with the path from start to finish marked with `*` characters.
+This program will output the a solved pathfile, with the path from start to finish marked with `@` characters.
 
 Ex:
 
 input pathfile:
 
-    s... 
-    xx.x 
-    g... 
-    .... 
+    s...
+    ||.|
+    g...
+    ....
 
 output pathfile:
 
-    s**. 
-    xx*x 
-    g**. 
+    s@@.
+    ||@|
+    g@@.
     ....
