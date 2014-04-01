@@ -88,17 +88,17 @@ impl SymbolIndexable for Grid {
 
 #[test]
 fn test_symbolize_line_one() {
-  assert_eq!(symbolize_line(~"..x.s"), ~[Open, Open, Closed, Open, Start]);
+  assert_eq!(symbolize_line(~"..|.s"), ~[Open, Open, Closed, Open, Start]);
 }
 
 #[test]
 fn test_symbolize_line_two() {
-  assert!(symbolize_line(~".sx.sf..xx.x") == ~[Open, Start, Closed, Open, Start, Finish, Open, Open, Closed, Closed, Open, Closed]);
+  assert!(symbolize_line(~".s|.sf..||.|") == ~[Open, Start, Closed, Open, Start, Finish, Open, Open, Closed, Closed, Open, Closed]);
 }
 
 #[test]
 fn test_symbolize_line_three() {
-  assert!(symbolize_line(~".sx.sf..xx.x") != ~[Start, Open, Closed, Open, Start, Finish, Open, Open, Closed, Closed, Open, Closed]);
+  assert!(symbolize_line(~".s|.sf..||.|") != ~[Start, Open, Closed, Open, Start, Finish, Open, Open, Closed, Closed, Open, Closed]);
 }
 
 #[test]
